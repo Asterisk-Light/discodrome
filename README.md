@@ -16,31 +16,25 @@ A Discord music bot that seamlessly streams music from your personal music serve
 
 ## Commands
 
-### Slash Commands
+Music commands are hybrid commands, so they can be used as slash commands or with the configured message prefix. For example, `/play` and `?play` both play a track, album, or playlist (`?` is the default prefix).
 
-| Command | Description |
-|---------|-------------|
-| `/play` | Place a specified track, album, or playlist at the end of the queue and start playing |
-| `/next` | Place a specified track next in the queue and start playing |
-| `/disco` | Play an artist's entire discography |
-| `/queue` | View the current queue |
-| `/clear` | Clear the current queue |
-| `/shuffle` | Shuffle the current queue |
-| `/skip` | Skip the current track |
-| `/stop` | Stop playing the current track |
-| `/autoplay` | Toggle autoplay |
-| `/playlists` | List available playlists |
-| `/playlist` | List songs in a playlist |
-| `/sync` | Sync application commnads (owner only) |
+| Slash command | Prefix command | Description |
+|---------------|----------------|-------------|
+| `/play` | `?play` | Place a specified track, album, or playlist at the end of the queue and start playing |
+| `/next` | `?next` | Place a specified track next in the queue and start playing |
+| `/disco` | `?disco` | Play an artist's entire discography |
+| `/queue` | `?queue` | View the current queue |
+| `/clear` | `?clear` | Clear the current queue |
+| `/shuffle` | `?shuffle` | Shuffle the current queue |
+| `/skip` | `?skip` | Skip the current track |
+| `/stop` | `?stop` | Stop playing the current track |
+| `/leave` | `?leave` | Stop playback, clear the queue, and leave the voice channel |
+| `/autoplay` | `?autoplay` | Toggle autoplay |
+| `/playlists` | `?playlists` | List available playlists |
+| `/playlist` | `?playlist` | List songs in a playlist |
+| `/sync` | `?sync` | Sync application commands (owner only) |
 
-### Prefix Commands
-
-| Command | Description |
-|---------|-------------|
-| `p` | Place a specified track at the end of the queue and start playing |
-| `n` | Place a specified track next in the queue and start playing |
-| `s` | Skip the current track |
-| `q` | View the current queue |
+The existing short music commands are available in both forms as well: `/p` and `?p` play a track, `/n` and `?n` queue one next, `/s` and `?s` skip, and `/q` and `?q` show the queue. Replace `?` with your configured `BOT_PREFIX` when it differs from the default. Prefix queries containing spaces can be entered as the remaining text after the command; quote playlist names when also specifying a page.
 
 ---
 
@@ -81,13 +75,14 @@ A Discord music bot that seamlessly streams music from your personal music serve
 
 ### Step 3 — Deploy with Docker
 
-Pull the Docker image:
+Create a `.env` file next to `docker-compose.yml` with the environment variables described in the Configuration section, then build and start the bot:
 
 ```
-docker pull 7eventy7/discodrome:latest
+docker compose build --no-cache
+docker compose up -d
 ```
 
-Then run the container with the environment variables described in the Configuration section below.
+The Compose file builds directly from the repository's `main` branch on GitHub. Re-run `docker compose build --no-cache` when you want to fetch and build the latest code from that branch, then run `docker compose up -d` to restart the bot with the new image.
 
 ---
 
@@ -103,7 +98,7 @@ Then run the container with the environment variables described in the Configura
 | `SUBSONIC_AUTH_MODE` | Authentication mode: `plaintext` or `token`. Token auth is highly recommended for security. | Yes |
 | `DISCORD_BOT_TOKEN` | Your Discord bot token | Yes |
 | `DISCORD_OWNER_ID` | Your Discord user ID | Yes |
-| `DISCORD_TEST_GUILD` | Guiold ID for testing during development. If set commands will be synced directly to this guild as well as globally. This means the commands will propagate immediately but will also be duplicated. | No |
+| `DISCORD_TEST_GUILD` | Discord server ID for testing during development. Set this to sync commands to that server immediately as well as globally; without it, global slash-command updates may take time to appear. | No |
 | `BOT_STATUS` | Custom status message for the bot | No |
 | `BOT_PREFIX` | Command prefix for the bot. If unset, prefix commands can still be used with an @mention. An empty string will cause all messages to be interpreted as commands. | No |
 | `BOT_SEARCH_SUGGESTION_COUNT` | Number of items to display in the autocomplete menu. Defaults to 5. | No |
