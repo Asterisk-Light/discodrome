@@ -21,6 +21,7 @@ class DiscodromeClient(commands.Bot):
 
     def __init__(self, test_guild: int=None) -> None:
         self.test_guild = test_guild
+        self._shutdown_complete = False
 
         if env.BOT_PREFIX != None:
             if len(env.BOT_PREFIX) > 0:
@@ -31,6 +32,7 @@ class DiscodromeClient(commands.Bot):
             logger.info(f'Command prefix not set.')
         prefix = commands.when_mentioned if env.BOT_PREFIX == None else commands.when_mentioned_or(env.BOT_PREFIX)
         super().__init__(command_prefix=prefix, intents=discord.Intents.all())
+        self._shutdown_lock = asyncio.Lock()
 
     async def load_extensions(self) -> None:
         ''' Auto-loads all extensions present within the `./extensions` directory. '''
@@ -55,11 +57,16 @@ class DiscodromeClient(commands.Bot):
     async def sync_command_tree(self) -> None:
         ''' Synchronizes the command tree with the guild used for testing. '''
 
-        await self.tree.sync()
-        if (self.test_guild):
+        if self.test_guild is not None:
             guild = discord.Object(self.test_guild)
             self.tree.copy_global_to(guild=guild)
-            await self.tree.sync(guild=guild)
+            synced_guild_commands = await self.tree.sync(guild=guild)
+            logger.info("Synchronized %d application commands to test guild %s.", len(synced_guild_commands), self.test_guild)
+
+        synced_global_commands = await self.tree.sync()
+        logger.info("Synchronized %d global application commands.", len(synced_global_commands))
+        if self.test_guild is None:
+            logger.info("DISCORD_TEST_GUILD is not set; global command updates may take time to appear.")
 
     async def setup_hook(self) -> None:
         ''' Setup done after login, prior to events being dispatched. '''
@@ -73,15 +80,33 @@ class DiscodromeClient(commands.Bot):
         await self.sync_command_tree()
 
         loop = asyncio.get_running_loop()
-        loop.add_signal_handler(signal.SIGTERM, lambda: asyncio.ensure_future(self._on_sigterm()))
+        try:
+            loop.add_signal_handler(signal.SIGTERM, lambda: asyncio.create_task(self._on_sigterm()))
+        except NotImplementedError:
+            logger.debug("Signal handlers are unavailable on this event loop; bot.close() will handle shutdown.")
 
     async def _on_sigterm(self) -> None:
         ''' Graceful shutdown on SIGTERM. '''
-        logger.debug("Beginning graceful shutdown...")
-        data.save_guild_properties_to_disk()
-        await close_session()
-        logger.info("Discodrome shutdown complete.")
         await self.close()
+
+    async def close(self) -> None:
+        ''' Save bot state and close resources before shutting down. '''
+        async with self._shutdown_lock:
+            if self._shutdown_complete:
+                await super().close()
+                return
+
+            self._shutdown_complete = True
+            logger.debug("Beginning graceful shutdown...")
+            try:
+                data.save_guild_properties_to_disk()
+            finally:
+                try:
+                    await close_session()
+                finally:
+                    await super().close()
+
+            logger.info("Discodrome shutdown complete.")
 
     async def on_ready(self) -> None:
         ''' Event called when the client is done preparing. '''
@@ -97,4 +122,3 @@ if __name__ == "__main__":
     data.load_guild_properties_from_disk()
     client = DiscodromeClient(test_guild=env.DISCORD_TEST_GUILD)
     client.run(env.DISCORD_BOT_TOKEN, log_handler=None)
-

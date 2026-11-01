@@ -1,6 +1,6 @@
 services:
   discodrome:
-    image: 7eventy7/discodrome:latest
+    build: https://github.com/Asterisk-Light/discodrome.git#master
     container_name: discodrome
     restart: unless-stopped
     env_file:

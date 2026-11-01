@@ -16,14 +16,12 @@ class OwnerCog(commands.Cog):
     def __init__(self, bot: DiscodromeClient):
         self.bot = bot
     
-    async def interaction_check(self, interaction: Interaction):
-        return interaction.user.id == env.DISCORD_OWNER_ID
-
-    @app_commands.command(name="sync", description="Sync slash commands")
-    async def sync(self, interaction: Interaction):
+    @commands.hybrid_command(name="sync", description="Sync slash commands")
+    @commands.check(lambda ctx: ctx.author.id == env.DISCORD_OWNER_ID)
+    @app_commands.check(lambda interaction: interaction.user.id == env.DISCORD_OWNER_ID)
+    async def sync(self, ctx: commands.Context):
         await self.bot.sync_command_tree()
-        if (interaction.message is not None):
-            await interaction.message.reply("Commands synced")
+        await ctx.send("Commands synced")
 
 async def setup(bot: DiscodromeClient):
     ''' Setup function for the owner.py cog '''
